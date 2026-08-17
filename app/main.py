@@ -4,8 +4,9 @@ from sqlalchemy import text
 
 from app.db.session import engine, SessionLocal, Base
 from app.models.user import User
+from app.models.user_anime import UserAnime
 from app.api.auth import router as auth_router
-
+from app.api.my_list import router as my_list_router
 from app.api.anime import router as anime_router
 
 
@@ -30,6 +31,7 @@ app = FastAPI(title="AnimePass")
 
 app.include_router(auth_router)
 app.include_router(anime_router)
+app.include_router(my_list_router)
 
 
 @app.get("/")
