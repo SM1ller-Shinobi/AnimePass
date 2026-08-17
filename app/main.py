@@ -6,6 +6,8 @@ from app.db.session import engine, SessionLocal, Base
 from app.models.user import User
 from app.api.auth import router as auth_router
 
+from app.api.anime import router as anime_router
+
 
 def wait_for_db(max_retries: int = 10, delay: int = 2):
     for attempt in range(max_retries):
@@ -27,6 +29,7 @@ if wait_for_db():
 app = FastAPI(title="AnimePass")
 
 app.include_router(auth_router)
+app.include_router(anime_router)
 
 
 @app.get("/")
