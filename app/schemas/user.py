@@ -50,3 +50,19 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class UserStatsResponse(BaseModel):
+    level: int
+    level_name: str
+    xp: int
+    completed_count: int
+    watching_count: int
+    plan_to_watch_count: int
+    dropped_count: int
+    total_in_list: int
+    next_level_threshold: int | None
+
+    class Config:
+        from_attributes = True
+
