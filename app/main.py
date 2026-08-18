@@ -5,10 +5,12 @@ from sqlalchemy import text
 from app.db.session import engine, SessionLocal, Base
 from app.models.user import User
 from app.models.user_anime import UserAnime
+from app.services.gamification_service import seed_achievements
 from app.api.auth import router as auth_router
 from app.api.my_list import router as my_list_router
 from app.api.anime import router as anime_router
 from app.api.stats import router as stats_router
+from app.api.achievements import router as achievements_router
 
 
 def wait_for_db(max_retries: int = 10, delay: int = 2):
@@ -28,12 +30,18 @@ def wait_for_db(max_retries: int = 10, delay: int = 2):
 if wait_for_db():
     Base.metadata.create_all(bind=engine)
 
+if wait_for_db():
+    Base.metadata.create_all(bind=engine)
+    with SessionLocal() as session:
+        seed_achievements(session)
+
 app = FastAPI(title="AnimePass")
 
 app.include_router(auth_router)
 app.include_router(anime_router)
 app.include_router(my_list_router)
 app.include_router(stats_router)
+app.include_router(achievements_router)
 
 
 @app.get("/")
