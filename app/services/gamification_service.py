@@ -6,12 +6,14 @@ from app.models.user_anime import UserAnime
 from app.models.achievement import Achievement, UserAchievement
 from app.core.gamification import XP_REWARDS, calculate_level
 from app.core.achievements import ACHIEVEMENTS_DATA, ACHIEVEMENT_CHECKS
+from app.services.activity_service import log_activity
 
 
 def seed_achievements(db: Session):
     existing_count = db.query(Achievement).count()
     if existing_count > 0:
         return
+
     for data in ACHIEVEMENTS_DATA:
         achievement = Achievement(
             code=data["code"],
@@ -66,6 +68,7 @@ def check_and_grant_achievements(db: Session, user: User) -> list:
     existing_ids = {row[0] for row in existing_achievements}
 
     for code, check_func in ACHIEVEMENT_CHECKS.items():
+        # Проверяем условие
         if not check_func(stats):
             continue
 
@@ -87,7 +90,11 @@ def check_and_grant_achievements(db: Session, user: User) -> list:
         user.xp += achievement.xp_reward
         granted.append(achievement.title)
 
-    if granted:
-        db.commit()
+        log_activity(
+            db,
+            user_id=user.id,
+            action_type="got_achievement",
+            description=f"Получил ачивку «{achievement.title}» {achievement.icon or ''}",
+        )
 
     return granted

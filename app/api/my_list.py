@@ -8,8 +8,9 @@ from app.models.user_anime import UserAnime
 from app.schemas.user_anime import UserAnimeCreate, UserAnimeResponse
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.services.gamification_service import grant_xp
-from app.services.gamification_service import check_and_grant_achievements
+from app.core.gamification import calculate_level
+from app.services.gamification_service import grant_xp, check_and_grant_achievements
+from app.services.activity_service import log_activity
 
 router = APIRouter(prefix="/me/anime", tags=["my_list"])
 
@@ -23,12 +24,16 @@ def add_or_update_anime(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+
     db_anime = db.query(UserAnime).filter(
         UserAnime.user_id == current_user.id,
         UserAnime.mal_id == anime_data.mal_id
     ).first()
 
+    is_new = db_anime is None
     xp_gained = 0
+    old_status = None
+    old_score = None
 
     if db_anime:
         old_status = db_anime.status
@@ -63,7 +68,6 @@ def add_or_update_anime(
     db.commit()
     db.refresh(db_anime)
 
-    from app.core.gamification import calculate_level
     completed_count = db.query(func.count(UserAnime.id)).filter(
         UserAnime.user_id == current_user.id,
         UserAnime.status == "completed"
@@ -73,7 +77,27 @@ def add_or_update_anime(
         current_user.level = new_level
         db.commit()
 
+    if is_new:
+        log_activity(
+            db,
+            user_id=current_user.id,
+            action_type="added_anime",
+            description=f"Добавил аниме (mal_id={anime_data.mal_id}) в список",
+            mal_id=anime_data.mal_id,
+        )
+
+    if anime_data.status == "completed" and old_status != "completed":
+        log_activity(
+            db,
+            user_id=current_user.id,
+            action_type="completed_anime",
+            description=f"Завершил просмотр аниме (mal_id={anime_data.mal_id})",
+            mal_id=anime_data.mal_id,
+        )
+
     granted_achievements = check_and_grant_achievements(db, current_user)
+
+    db.commit()
 
     if xp_gained > 0:
         print(f"🎮 Пользователь {current_user.username} получил {xp_gained} XP")
@@ -91,7 +115,6 @@ def get_my_list(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Получить свой список аниме"""
     query = db.query(UserAnime).filter(UserAnime.user_id == current_user.id)
 
     if status_filter:
@@ -99,13 +122,13 @@ def get_my_list(
 
     return query.order_by(UserAnime.updated_at.desc()).all()
 
+
 @router.delete("/{mal_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_from_list(
     mal_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Удалить аниме из своего списка"""
     db_anime = db.query(UserAnime).filter(
         UserAnime.user_id == current_user.id,
         UserAnime.mal_id == mal_id
@@ -113,7 +136,8 @@ def remove_from_list(
 
     if not db_anime:
         raise HTTPException(
-            status_code=404, detail="Аниме не найдено в вашем списке"
+            status_code=404,
+            detail="Аниме не найдено в вашем списке"
         )
 
     db.delete(db_anime)
