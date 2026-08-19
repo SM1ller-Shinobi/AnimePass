@@ -7,7 +7,9 @@ from app.models.user import User
 from app.models.user_anime import UserAnime
 from app.models.friendship import Friendship
 from app.models.activity import Activity
+from app.models.ad import AdCampaign
 from app.services.gamification_service import seed_achievements
+from app.services.ad_service import seed_ads
 from app.api.auth import router as auth_router
 from app.api.my_list import router as my_list_router
 from app.api.anime import router as anime_router
@@ -16,6 +18,8 @@ from app.api.achievements import router as achievements_router
 from app.api.users import router as users_router
 from app.api.friends import router as friends_router
 from app.api.activity import router as activity_router
+from app.api.premium import router as premium_router
+from app.api.ads import router as ads_router
 
 
 def wait_for_db(max_retries: int = 10, delay: int = 2):
@@ -39,6 +43,7 @@ if wait_for_db():
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
         seed_achievements(session)
+        seed_ads(session)
 
 app = FastAPI(title="AnimePass")
 
@@ -50,6 +55,8 @@ app.include_router(achievements_router)
 app.include_router(users_router)
 app.include_router(friends_router)
 app.include_router(activity_router)
+app.include_router(premium_router)
+app.include_router(ads_router)
 
 
 @app.get("/")
