@@ -20,6 +20,7 @@ from app.api.friends import router as friends_router
 from app.api.activity import router as activity_router
 from app.api.premium import router as premium_router
 from app.api.ads import router as ads_router
+from app.api.admin import router as admin_router
 
 
 def wait_for_db(max_retries: int = 10, delay: int = 2):
@@ -57,6 +58,7 @@ app.include_router(friends_router)
 app.include_router(activity_router)
 app.include_router(premium_router)
 app.include_router(ads_router)
+app.include_router(admin_router)
 
 
 @app.get("/")

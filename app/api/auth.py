@@ -33,10 +33,12 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
     hashed_pwd = hash_password(user_data.password)
+    is_admin_user = user_data.email.lower() == settings.ADMIN_EMAIL.lower()
     new_user = User(
         username=user_data.username,
         email=user_data.email,
         hashed_password=hashed_pwd,
+        is_admin=is_admin_user,
     )
     db.add(new_user)
     db.commit()
